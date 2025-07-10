@@ -3,7 +3,7 @@ local FILE_NAME       = "SubForce_Unlock.json"
 local EXPIRE_SECONDS  = 9 * 24 * 60 * 60
 
 local GameData = {
-    ["125602773710003"] = {
+    ["7640355850"] = {
         key = "KiwiFlare",
         url = "https://pastefy.app/IQWBMnaR/raw"
     },
