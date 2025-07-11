@@ -1,214 +1,44 @@
---════════ CONFIG PER GAME ════════
-local FILE_NAME       = "SubForce_Unlock.json"
-local EXPIRE_SECONDS  = 9 * 24 * 60 * 60
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local PlaceId = game.PlaceId
 
-local GameData = {
-    ["7640355850"] = {
-        key = "KiwiFlare",
-        url = "https://pastefy.app/IQWBMnaR/raw"
-    },
-    ["83994791126545"] = {
-        key = "KiwiFlare",
-        url = "https://pastefy.app/m5Rxqsi0/raw"
-    },
-    ["126169604141266"] = {
-        key = "KiwiFlare",
-        url = "https://pastefy.app/i4ymrHIT/raw"
-    },
-    ["100066355356374"] = {
-        key = "KiwiFlare",
-        url = "https://pastefy.app/42OOWphK/raw"
-    },
+local GameScripts = {
+    [125602773710003] = "q",
+    [83994791126545] = "w",
+    [126169604141266] = "e",
+    [100066355356374] = "r",
+    [16190471004] = "t",
+    [76381016848158] = "y",
+    [75794995434025] = "o",
+    [75663528075786] = "u",
+    [73727760725654] = "i",
 }
---═════════════════════════════════
 
--- ░▒▓  INIT  ▓▒░
-local Players      = game:GetService("Players")
-local Analytics    = game:GetService("RbxAnalyticsService")
-local HttpService  = game:GetService("HttpService")
-local player       = Players.LocalPlayer
-
-local idList = {
-    tostring(game.PlaceId),
-    tostring(game.GameId),
-}
-local gameInfo
-for _, id in ipairs(idList) do
-    if GameData[id] then
-        gameInfo = GameData[id]
-        break
-    end
-end
-if not gameInfo then
-    player:Kick("This game is not supported.")
-    return
-end
-
--- ░▒▓  CRYPTO  ▓▒░
-local function sha256(s)
-    if syn and syn.crypt and syn.crypt.hash then return syn.crypt.hash(s,"sha256")
-    elseif crypt and crypt.hash then            return crypt.hash(s,"sha256")
-    elseif hash  and hash.sha256 then           return hash.sha256(s)
-    elseif Krnl and Krnl.Hash then              return Krnl.Hash(s)
-    else                                        return tostring(s) end
-end
-local CLIENT_ID = Analytics:GetClientId()
-local function makeHash(key) return sha256(key .. CLIENT_ID) end
-
--- ░▒▓  COUNTDOWN  ▓▒░
-local function fmt(sec)
-    local d=math.floor(sec/86400)
-    local h=math.floor(sec%86400/3600)
-    local m=math.floor(sec%3600/60)
-    local s=sec%60
-    return string.format("%dd %02d:%02d:%02d",d,h,m,s)
-end
-local function startCountdown(expireTime)
-    local cdGui = Instance.new("ScreenGui", game.CoreGui)
-    cdGui.Name, cdGui.IgnoreGuiInset = "KeyCountdownGui", true
-
-    local lbl = Instance.new("TextLabel", cdGui)
-    lbl.AnchorPoint = Vector2.new(1,0)
-    lbl.Position = UDim2.new(1,-10,0,10)
-    lbl.Size = UDim2.new(0,180,0,30)
-    lbl.BackgroundTransparency = 0.4
-    lbl.BackgroundColor3 = Color3.fromRGB(20, 40, 80)
-    lbl.TextColor3 = Color3.fromRGB(240, 240, 255)
-    lbl.Font = Enum.Font.GothamBlack
-    lbl.TextScaled = true
-    Instance.new("UICorner", lbl).CornerRadius = UDim.new(0,8)
-    Instance.new("UIStroke", lbl).Color = Color3.fromRGB(50, 100, 200)
-
-    task.spawn(function()
-        while true do
-            local left = expireTime - os.time()
-            if left <= 0 then
-                lbl.Text = "Key expired"
-                task.wait(1)
-                player:Kick("Key expired – please re-enter key.")
-                return
-            else
-                lbl.Text = "Key time left: "..fmt(left)
-            end
-            task.wait(1)
-        end
-    end)
-end
-
--- ░▒▓  LOAD DARI FILE  ▓▒░
-local function tryAutoLoad()
-    if not (isfile and readfile and isfile(FILE_NAME)) then return false end
-    local ok, content = pcall(readfile, FILE_NAME)
-    if not ok then return false end
-    local d = HttpService:JSONDecode(content)
-    local expected = makeHash(gameInfo.key)
-    if d and d.hash == expected then
-        local expiry = (d.time or 0) + EXPIRE_SECONDS
-        if os.time() < expiry then
-            startCountdown(expiry)
-            local success, result = pcall(function()
-                return game:HttpGet(gameInfo.url, true)
-            end)
-            if success and result and result ~= "" then
-                local run = loadstring(result)
-                if type(run) == "function" then run() return true end
-            end
-        else
-            pcall(delfile, FILE_NAME)
-        end
-    end
-    return false
-end
-
-if tryAutoLoad() then return end
-
--- ░▒▓  GUI UNLOCK  ▓▒░
-local function unlockGUI()
-    local gui = Instance.new("ScreenGui", game.CoreGui)
-    gui.Name, gui.IgnoreGuiInset = "SubscribeForceGui"
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    local blur = Instance.new("BlurEffect", game.Lighting)
-    blur.Size = 24
-
-    local frame = Instance.new("Frame", gui)
-    frame.Size, frame.Position = UDim2.new(0,300,0,250), UDim2.new(.5,-150,.5,-125)
-    frame.BackgroundColor3 = Color3.fromRGB(20, 40, 80)
-    frame.BackgroundTransparency = 0.2
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
-
-    local function mkLabel(text, y)
-        local l = Instance.new("TextLabel", frame)
-        l.Size, l.Position = UDim2.new(1,-20,0,30), UDim2.new(0,10,0,y)
-        l.BackgroundTransparency = 1
-        l.Text = text
-        l.TextScaled = true
-        l.Font = Enum.Font.GothamBlack
-        l.TextColor3 = Color3.fromRGB(240,240,255)
-        return l
+-- Loader Function
+local function loadGameScript(placeId)
+    local fileName = GameScripts[placeId]
+    if not fileName then
+        StarterGui:SetCore("SendNotification", {
+            Title = "ArceusXNeon",
+            Text = "❌ Sorry, But This Game Isn't Supported..",
+            Duration = 5
+        })
+        return
     end
 
-    local title = mkLabel("Subscribe To Unlock", 10)
-    local desc  = mkLabel("Click Copy Link Below!", 40)
-    desc.Font = Enum.Font.SourceSans
-
-    local keyBox = Instance.new("TextBox", frame)
-    keyBox.Size, keyBox.Position = UDim2.new(.8,0,0,30), UDim2.new(.1,0,.45,0)
-    keyBox.PlaceholderText = "Enter Key"
-    keyBox.Visible = false
-    keyBox.BackgroundColor3 = Color3.fromRGB(100,150,255)
-    keyBox.BackgroundTransparency = 0.3
-    keyBox.TextColor3 = Color3.fromRGB(240,240,255)
-    keyBox.Font = Enum.Font.SourceSans
-    keyBox.TextScaled = true
-    Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0,6)
-
-    local okBtn = Instance.new("TextButton", frame)
-    okBtn.Size, okBtn.Position = UDim2.new(.6,0,0,30), UDim2.new(.2,0,.65,0)
-    okBtn.Text = "Continue"
-    okBtn.Visible = false
-    okBtn.TextScaled = true
-    okBtn.Font = Enum.Font.GothamBlack
-    okBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
-    okBtn.TextColor3 = Color3.fromRGB(240, 240, 255)
-    Instance.new("UICorner", okBtn).CornerRadius = UDim.new(0,6)
-
-    local copyBtn = Instance.new("TextButton", frame)
-    copyBtn.Size, copyBtn.Position = UDim2.new(.5,0,0,30), UDim2.new(.25,0,.32,0)
-    copyBtn.Text = "Copy Link"
-    copyBtn.TextScaled = true
-    copyBtn.Font = Enum.Font.GothamBlack
-    copyBtn.BackgroundColor3 = Color3.fromRGB(20, 40, 80)
-    copyBtn.TextColor3 = Color3.fromRGB(240, 240, 255)
-    Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0,6)
-
-    copyBtn.MouseButton1Click:Connect(function()
-        setclipboard("https://galaxenmodsking.vercel.app/")
-        copyBtn.Text = "Link copied!"
-        copyBtn.Active = false
-        keyBox.Visible, okBtn.Visible = true, true
-        desc.Text = "Welcome"
+    local success, result = pcall(function()
+        local url = string.format("https://raw.githubusercontent.com/ArceusXArchive/ScriptsMain/refs/heads/main/MainLoadTH", fileName)
+        return loadstring(game:HttpGet(url))()
     end)
 
-    okBtn.MouseButton1Click:Connect(function()
-        if keyBox.Text == gameInfo.key then
-            local expireTime = os.time() + EXPIRE_SECONDS
-            local data = HttpService:JSONEncode({
-                hash = makeHash(gameInfo.key),
-                time = os.time(),
-            })
-            pcall(function() writefile(FILE_NAME, data) end)
-            gui:Destroy() blur:Destroy()
-            startCountdown(expireTime)
-            local success, script = pcall(game.HttpGet, game, gameInfo.url, true)
-            if success and script and script ~= "" then
-                local f = loadstring(script)
-                if type(f) == "function" then f() end
-            end
-        else
-            desc.Text = "Wrong key"
-        end
-    end)
+    if not success then
+        warn("❌ The Script Didn't Load:", result)
+        StarterGui:SetCore("SendNotification", {
+            Title = "ArceusXNeon",
+            Text = "⚠️ Script failed to load.",
+            Duration = 5
+        })
+    end
 end
 
-unlockGUI()
+loadGameScript(PlaceId)
